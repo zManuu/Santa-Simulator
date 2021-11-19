@@ -10,6 +10,7 @@ public class GAME : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _notificationText;
     [SerializeField] private Transform _playerTF;
     [SerializeField] private Transform _gridTF;
+    [SerializeField] private TextMeshProUGUI _timeText;
 
 
     public bool _gamePaused = false;
@@ -20,13 +21,16 @@ public class GAME : MonoBehaviour
     private Transform _treeTF;
     private GameObject _presentContainer;
     private Canvas _treeTooltip;
+    private int _timeRemaining;
     private bool _presentDelivered = false;
+    private bool _lost = false;
 
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         LoadLevels();
         LoadLevel();
+        StartCoroutine(StartTimeCoroutine());
     }
 
     #region LOADING
@@ -48,13 +52,14 @@ public class GAME : MonoBehaviour
         _treeTF = _levelTR.GetChild(0);
         _presentContainer = _treeTF.GetChild(1).gameObject;
         _treeTooltip = _treeTF.GetChild(0).GetComponent<Canvas>();
+        _timeRemaining = _levelTR.GetComponent<LevelDataHolder>().StartTime;
     }
 
     #endregion
 
     public void OnEPressed()
     {
-        if (_presentDelivered) return;
+        if (_presentDelivered || _lost) return;
         if (Vector2.Distance(_treeTF.position, _playerTF.position) < 1.5f)
         {
             _treeTooltip.gameObject.SetActive(false);
@@ -66,8 +71,36 @@ public class GAME : MonoBehaviour
     }
     private IEnumerator __OnEPressedCoroutine()
     {
-        yield return new WaitForSeconds(5);
+        yield return new WaitForSeconds(3);
         PlayerPrefs.SetInt("CURRENTLEVEL", _level + 1);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+    private IEnumerator StartTimeCoroutine()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(1f);
+            _timeText.SetText($"{_timeRemaining}s");
+            if (_timeRemaining == 0)
+            {
+                if (!_lost && !_presentDelivered)
+                {
+                    ShowNotification("Die Zeit ist abgelaufen. Das Level wird gleich neugestartet.");
+                    _lost = true;
+                    StartCoroutine(__RestartLevel());
+                }
+            } else
+            {
+                if (!_presentDelivered && !_lost)
+                {
+                    _timeRemaining -= 1;
+                }
+            }
+        }
+    }
+    private IEnumerator __RestartLevel()
+    {
+        yield return new WaitForSeconds(2);
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
