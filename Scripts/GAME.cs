@@ -1,16 +1,18 @@
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GAME : MonoBehaviour
+public class GAME : MonoBehaviourPunCallbacks
 {
 
     [SerializeField] private TextMeshProUGUI _notificationText;
     [SerializeField] private Transform _playerTF;
     [SerializeField] private Transform _gridTF;
     [SerializeField] private TextMeshProUGUI _timeText;
+    [SerializeField] private Texture2D _cursorTexture;
 
 
     public bool _gamePaused = false;
@@ -27,7 +29,7 @@ public class GAME : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        SetCustomCursor();
         LoadLevels();
         LoadLevel();
         StartCoroutine(StartTimeCoroutine());
@@ -54,6 +56,12 @@ public class GAME : MonoBehaviour
         _treeTooltip = _treeTF.GetChild(0).GetComponent<Canvas>();
         _timeRemaining = _levelTR.GetComponent<LevelDataHolder>().StartTime;
     }
+    private void SetCustomCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Vector2 cursorOffset = new Vector2(_cursorTexture.width / 2, _cursorTexture.height / 2);
+        Cursor.SetCursor(_cursorTexture, cursorOffset, CursorMode.Auto);
+    }
 
     #endregion
 
@@ -71,9 +79,9 @@ public class GAME : MonoBehaviour
     }
     private IEnumerator __OnEPressedCoroutine()
     {
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(2);
         PlayerPrefs.SetInt("CURRENTLEVEL", _level + 1);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        PhotonNetwork.LoadLevel("Ingame");
     }
     private IEnumerator StartTimeCoroutine()
     {
@@ -101,8 +109,23 @@ public class GAME : MonoBehaviour
     private IEnumerator __RestartLevel()
     {
         yield return new WaitForSeconds(2);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        PhotonNetwork.LoadLevel("Ingame");
     }
+
+    #region MULTIPLAYER
+
+    [PunRPC]
+    void SyncTime(int someValue, PhotonMessageInfo info)
+    {
+
+    }
+    void CallTimeSync()
+    {
+        PhotonView PV = _playerTF.GetComponent<PhotonView>();
+        PV.RPC("SyncTime", RpcTarget.All, _timeRemaining);
+    }
+
+    #endregion
 
     #region UTIL FUNCS
 
