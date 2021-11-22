@@ -1,4 +1,5 @@
 using Photon.Pun;
+using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -26,12 +27,14 @@ public class GAME : MonoBehaviourPunCallbacks
     private int _timeRemaining;
     private bool _presentDelivered = false;
     private bool _lost = false;
+    private PhotonView _syncView;
 
     void Start()
     {
         SetCustomCursor();
         LoadLevels();
         LoadLevel();
+        StartupMultiplayer();
         StartCoroutine(StartTimeCoroutine());
     }
 
@@ -40,7 +43,7 @@ public class GAME : MonoBehaviourPunCallbacks
     private void LoadLevels()
     {
         _levels = new List<Transform>();
-        for (int i=0; i<_gridTF.childCount; i++)
+        for (int i = 0; i < _gridTF.childCount; i++)
         {
             _levels.Add(_gridTF.GetChild(i));
         }
@@ -62,6 +65,11 @@ public class GAME : MonoBehaviourPunCallbacks
         Vector2 cursorOffset = new Vector2(_cursorTexture.width / 2, _cursorTexture.height / 2);
         Cursor.SetCursor(_cursorTexture, cursorOffset, CursorMode.Auto);
     }
+    private void StartupMultiplayer()
+    {
+        _syncView = GetComponent<PhotonView>();
+    }
+
 
     #endregion
 
@@ -88,21 +96,11 @@ public class GAME : MonoBehaviourPunCallbacks
         while (true)
         {
             yield return new WaitForSeconds(1f);
-            _timeText.SetText($"{_timeRemaining}s");
-            if (_timeRemaining == 0)
+            if (PhotonNetwork.LocalPlayer.IsMasterClient)
             {
-                if (!_lost && !_presentDelivered)
-                {
-                    ShowNotification("Die Zeit ist abgelaufen. Das Level wird gleich neugestartet.");
-                    _lost = true;
-                    StartCoroutine(__RestartLevel());
-                }
-            } else
-            {
-                if (!_presentDelivered && !_lost)
-                {
-                    _timeRemaining -= 1;
-                }
+                _timeRemaining -= 1;
+                print("This client is the masterclient. Syncing time now.");
+                _syncView.RPC("RPC_Synctime", RpcTarget.All, _timeRemaining);
             }
         }
     }
@@ -112,20 +110,35 @@ public class GAME : MonoBehaviourPunCallbacks
         PhotonNetwork.LoadLevel("Ingame");
     }
 
-    #region MULTIPLAYER
+    #region PUN_RPCs
+
 
     [PunRPC]
-    void SyncTime(int someValue, PhotonMessageInfo info)
+    public void RPC_Synctime(int t)
     {
+        print("Time sync was requested by the masterclient: " + t);
+        _timeText.SetText($"{t}s");
+        if (t == 0)
+        {
+            /*if (!_lost && !_presentDelivered)
+            {
+                ShowNotification("Die Zeit ist abgelaufen. Das Level wird gleich neugestartet.");
+                _lost = true;
+                StartCoroutine(__RestartLevel());
+            }*/
+        }
+        else
+        {
+            if (!_presentDelivered && !_lost)
+            {
+                _timeRemaining = t;
+            }
+        }
+    }
 
-    }
-    void CallTimeSync()
-    {
-        PhotonView PV = _playerTF.GetComponent<PhotonView>();
-        PV.RPC("SyncTime", RpcTarget.All, _timeRemaining);
-    }
 
     #endregion
+
 
     #region UTIL FUNCS
 

@@ -20,6 +20,9 @@ public class Movement : MonoBehaviour
         if (!photonView.IsMine)
         {
             transform.GetChild(0).gameObject.SetActive(false);
+        } else
+        {
+            FindObjectOfType<SnowSpawner>()._playerTR = transform;
         }
     }
 

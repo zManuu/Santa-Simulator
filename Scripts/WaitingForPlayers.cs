@@ -59,7 +59,7 @@ public class WaitingForPlayers : MonoBehaviourPunCallbacks
     }
     private void UpdateOnlinePlayersIndicator()
     {
-        StringBuilder builder = new StringBuilder($"<size=0.25>Spieler in Lobby: {PhotonNetwork.CurrentRoom.PlayerCount}</size>\n");
+        StringBuilder builder = new StringBuilder($"Spieler in Lobby: {PhotonNetwork.CurrentRoom.PlayerCount}\n");
         foreach (var player in PhotonNetwork.CurrentRoom.Players.Values.ToArray())
         {
             builder.Append($"\n- {player.NickName}");
