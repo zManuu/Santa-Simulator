@@ -27,8 +27,8 @@ public class SnowSpawner : MonoBehaviour
                 int posX = Random.Range(Mathf.RoundToInt(_playerTR.position.x - 10), Mathf.RoundToInt(_playerTR.position.x + 10));
                 snowFlake.transform.position = new Vector3(posX, _playerTR.position.y + 10);
                 Destroy(snowFlake, 5);
-                yield return new WaitForSeconds(0.125f);
             }
+            yield return new WaitForSeconds(0.125f);
         }
     }
 

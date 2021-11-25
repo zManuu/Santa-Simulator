@@ -13,10 +13,6 @@ public class GAME : MonoBehaviourPunCallbacks
     [SerializeField] private Transform _playerTF;
     [SerializeField] private Transform _gridTF;
     [SerializeField] private TextMeshProUGUI _timeText;
-    [SerializeField] private Texture2D _cursorTexture;
-
-
-    public bool _gamePaused = false;
 
     private int _level;
     private List<Transform> _levels;
@@ -31,11 +27,11 @@ public class GAME : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        SetCustomCursor();
+        Cursor.lockState = CursorLockMode.Locked;
         LoadLevels();
         LoadLevel();
-        StartupMultiplayer();
-        StartCoroutine(StartTimeCoroutine());
+        //StartupMultiplayer();
+        //StartCoroutine(StartTimeCoroutine());
     }
 
     #region LOADING
@@ -59,17 +55,10 @@ public class GAME : MonoBehaviourPunCallbacks
         _treeTooltip = _treeTF.GetChild(0).GetComponent<Canvas>();
         _timeRemaining = _levelTR.GetComponent<LevelDataHolder>().StartTime;
     }
-    private void SetCustomCursor()
-    {
-        Cursor.lockState = CursorLockMode.Locked;
-        Vector2 cursorOffset = new Vector2(_cursorTexture.width / 2, _cursorTexture.height / 2);
-        Cursor.SetCursor(_cursorTexture, cursorOffset, CursorMode.Auto);
-    }
     private void StartupMultiplayer()
     {
         _syncView = GetComponent<PhotonView>();
     }
-
 
     #endregion
 
