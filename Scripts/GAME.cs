@@ -28,10 +28,10 @@ public class GAME : MonoBehaviourPunCallbacks
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+
         LoadLevels();
-        LoadLevel();
-        //StartupMultiplayer();
-        //StartCoroutine(StartTimeCoroutine());
+        StartupMultiplayer();
+        StartCoroutine(StartTimeCoroutine());
     }
 
     #region LOADING
@@ -44,20 +44,14 @@ public class GAME : MonoBehaviourPunCallbacks
             _levels.Add(_gridTF.GetChild(i));
         }
     }
-    private void LoadLevel()
-    {
-        _level = PlayerPrefs.GetInt("CURRENTLEVEL", 1);
-        if (_level >= _levels.Count) _level = _levels.Count;
-        _levelTR = _levels[_level - 1];
-        _levelTR.gameObject.SetActive(true);
-        _treeTF = _levelTR.GetChild(0);
-        _presentContainer = _treeTF.GetChild(1).gameObject;
-        _treeTooltip = _treeTF.GetChild(0).GetComponent<Canvas>();
-        _timeRemaining = _levelTR.GetComponent<LevelDataHolder>().StartTime;
-    }
     private void StartupMultiplayer()
     {
         _syncView = GetComponent<PhotonView>();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            _syncView.RPC("RPC_Loadlevel", RpcTarget.All, Random.Range(0, _levels.Count) + 1);
+        }
+        _syncView.RPC("RPC_PlayerJoin", RpcTarget.All, PhotonNetwork.LocalPlayer.UserId);
     }
 
     #endregion
@@ -85,10 +79,10 @@ public class GAME : MonoBehaviourPunCallbacks
         while (true)
         {
             yield return new WaitForSeconds(1f);
-            if (PhotonNetwork.LocalPlayer.IsMasterClient)
+            if (PhotonNetwork.IsMasterClient)
             {
                 _timeRemaining -= 1;
-                print("This client is the masterclient. Syncing time now.");
+                //print("This client is the masterclient. Syncing time now.");
                 _syncView.RPC("RPC_Synctime", RpcTarget.All, _timeRemaining);
             }
         }
@@ -105,7 +99,7 @@ public class GAME : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RPC_Synctime(int t)
     {
-        print("Time sync was requested by the masterclient: " + t);
+        print("Incoming time sync request from masterclient: " + t);
         _timeText.SetText($"{t}s");
         if (t == 0)
         {
@@ -122,6 +116,33 @@ public class GAME : MonoBehaviourPunCallbacks
             {
                 _timeRemaining = t;
             }
+        }
+    }
+
+    [PunRPC]
+    public void RPC_Loadlevel(int level)
+    {
+        print("Loading the level: " + level);
+        _level = level; // '_level' is assigned to the value the master client calculated.
+        _levelTR = _levels[_level - 1]; // the level-Transform var beeing assigned (level - 1 !!)
+        _levelTR.gameObject.SetActive(true); // the level-Transform is beeing activated
+        LevelDataHolder levelData = _levelTR.GetComponent<LevelDataHolder>(); // the levelData of the level-Transform
+        Vector2[] possibleTreePoints = levelData.PossibleTreePoints; // the possible spawnpoints for the tree for the specific level
+        _treeTF = _levelTR.GetChild(0); // the tree-Transform is beeing assigned (it has to be the first child of the level-Transform!)
+        print(possibleTreePoints.Length);
+        _treeTF.position = possibleTreePoints[Random.Range(0, possibleTreePoints.Length - 1)]; // the tree is 'teleported' to its random spawnpoint
+        _presentContainer = _treeTF.GetChild(1).gameObject; // the present-Container is beeing assigned (it has to be the second child of the tree-Transform!)
+        _treeTooltip = _treeTF.GetChild(0).GetComponent<Canvas>(); // the tooltip-Canvas is beeing assigned (it has to be the first child of the tree-Transform!)
+        _timeRemaining = levelData.StartTime; // the timeRemaining integer is beeing assigned by the levels custom time limit
+        PhotonNetwork.Instantiate(_playerTF.name, levelData.SpawnPoint, Quaternion.identity); // the player is beeing instanciated!
+    }
+
+    [PunRPC]
+    public void RPC_PlayerJoin(string playerID)
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            
         }
     }
 

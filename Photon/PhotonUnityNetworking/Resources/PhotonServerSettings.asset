@@ -43,6 +43,8 @@ MonoBehaviour:
   - OnPlayerJoin
   - OnPlayerLeave
   - RPC_Synctime
+  - RPC_Loadlevel
+  - RPC_PlayerJoin
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
